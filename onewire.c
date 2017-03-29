@@ -8,13 +8,14 @@
 
 // Обслуживает сразу четыре датчика DS18B20 на RA0-RA3
 
-static unsigned char init_ds(){
+static unsigned char init_ds( unsigned char ds ){
     unsigned char b;
+    unsigned char control0 = 0b11110000 & (~ds*2);
     // пробуем сразу все четыре датчика
-    TRISA &= 0b11110000; // переключили на выход RA0-RA03
-    PORTA &= 0b11110000; // просадили на 500 мс
+    TRISA &= control0; // переключили на выход RA0-RA03
+    PORTA &= control0; // просадили на 500 мс
     __delay_us(500);
-    TRISA |= 0b00001111;
+    TRISA |= ~control0;
     __delay_us(65);
     b = PORTA;
     __delay_us(450);
@@ -111,7 +112,7 @@ signed int get_temp(unsigned char ds) {
     signed int temperature;              // температура х10 в цельсиях
     unsigned char signloc;            // знак температуры
 
-    init = (init_ds() >> ds) & 0b00000001;
+    init = (init_ds(ds) >> ds) & 0b00000001;
     if (!init) {
         TX(0xCC, ds);
         TX(0x44, ds);
@@ -121,7 +122,7 @@ signed int get_temp(unsigned char ds) {
         __delay_ms(150);
         __delay_ms(150); 
     }; 
-    init = (init_ds() >> ds) & 0b00000001;
+    init = (init_ds(ds) >> ds) & 0b00000001;
     if (!init) {
         RCIE = 0; //запрещаем прерывания
         
