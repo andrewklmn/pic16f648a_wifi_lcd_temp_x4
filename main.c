@@ -34,19 +34,149 @@
 #include <pic16f648a.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pic16f628a.h>
+#include <string.h>
 #include "lcd.h"
 #include "usart.h"
 #include "onewire.h"
 
+// переменные для хранения текущих данных по температуре
+signed int  temp[4] = {0,0,0,0};               // текущие показания датчика
+signed int tempmin[4] = {999,999,999,999};      // минимальные показания
+signed int tempmax[4] = {-999,-999,-999,-999};  // максимальные показания
+unsigned char active[4] = { 0,0,0,0 };          // массив активных датчиков 
+unsigned char active_old[4] = { 1,1,1,1 };      // массив активных датчиков перед измерением
 
-char *aa[17];
-char a[16] = "";
+
+char a[16] = "";    // буффер для приема комманд по USART
+char *aa[17];       // буффер для вывода цифр температуры
 
 char c;             // это символ для считывания из UART
 int i = 0;          // счётчик символа для комманд из UART
 signed int t = 0;   // переменная для хранения температуры
 char j = 0;         // счётчик для датчиков температуры
+
+void draw_temp( int temp ){
+        int zel = temp/10;
+        int drob = temp - temp/10*10;
+        if (temp < 0) {
+            if (zel > 9) {
+                sprintf( aa, "-%d.%d%c", ~(zel)+1, -(drob), 0xdf );
+            } else {
+                sprintf( aa, "-%d.%d%c ", ~(zel)+1, -(drob), 0xdf );
+            }; 
+        } else {
+            if (temp >999)  {
+                sprintf( aa,"+%d%c ", zel, 0xdf);
+            } else {
+                if (zel > 9) {
+                    sprintf( aa, "+%d.%d%c", zel, drob, 0xdf );
+                } else {
+                    sprintf( aa, "+%d.%d%c ", zel, drob, 0xdf );
+                }; 
+            };
+        };
+        Lcd_Write_String(aa);    
+};
+
+void draw_screen(){
+    
+    if ( active[0]!=active_old[0] 
+            || active[1]!=active_old[1] 
+            || active[2]!=active_old[2] 
+            || active[3]!=active_old[3] ) { // кол-во датчиков поменялось
+        
+        Lcd_Clear();
+        active_old[0]=active[0];
+        active_old[1]=active[1];
+        active_old[2]=active[2];
+        active_old[3]=active[3];
+        
+        if (active[2]==0 && active[3]==0) { // форматируем экран под режим двух датчиков 
+            if (active[1]==1) {
+                Lcd_Set_Cursor(1,1);
+                Lcd_Write_String("Indoor:");
+                Lcd_Set_Cursor(2,1);
+                Lcd_Write_String("Outdoor:");
+            } else {
+                if ( active[0]==0 ) {
+                    Lcd_Set_Cursor(1,1);
+                    Lcd_Write_String("   No sensors!");
+                } else {
+                    Lcd_Set_Cursor(1,1);
+                    Lcd_Write_String("Temp:");
+                    Lcd_Set_Cursor(2,1);
+                    Lcd_Write_String(">        <");
+                };
+            };
+        } else {
+                Lcd_Set_Cursor(1,1);
+                Lcd_Write_String("1:      2:");            
+                Lcd_Set_Cursor(2,1);
+                Lcd_Write_String("3:      4:");            
+        };
+    };
+    
+    if ( active[2]==0 && active[3]==0 ) {   // только два датчика
+        char dat = 1;
+        
+        if(active[0]==0 && active[1]==0) { // ввобще никаких датчиков
+            __delay_ms(500);
+        } else {
+            if(active[1]==1) {
+                dat = 2;
+            } else {
+                Lcd_Set_Cursor(2,2);
+                draw_temp(tempmin[0]);
+                Lcd_Set_Cursor(2,11);
+                draw_temp(tempmax[0]);
+                
+            };
+            for (j=0;j<dat;j++) {
+                if (dat==1) {
+                    Lcd_Set_Cursor(1,14);
+                    if ( temp[0]>199 ) {
+                        Lcd_Write_String(":-)");
+                    } else {
+                        Lcd_Write_String("   ");
+                    };
+                    Lcd_Set_Cursor(j+1,7);
+                } else {
+                    Lcd_Set_Cursor(j+1,10);
+                };
+                if (active[j]==1) {
+                    draw_temp(temp[j]);
+                } else {
+                    Lcd_Write_String(" ---   ");
+                };  
+            };
+        };
+    } else {
+            // более двух датчиков
+            for (j=0;j<4;j++) {
+
+                switch(j) {
+                    case 0:
+                        Lcd_Set_Cursor(1,3);    //  первый датчик
+                        break;
+                    case 1:
+                        Lcd_Set_Cursor(1,11);    //  второй датчик
+                        break;
+                    case 2:
+                        Lcd_Set_Cursor(2,3);    //  третий датчик
+                        break;
+                    case 3:
+                        Lcd_Set_Cursor(2,11);    //  четвертый датчик
+                        break;
+                };
+
+                if (active[j]==1) {
+                    draw_temp(temp[j]);
+                } else {
+                    Lcd_Write_String(" ---  ");
+                };
+            };
+    };
+}
 
 void main(void) {
     
@@ -60,15 +190,21 @@ void main(void) {
     RESET_WIFI_PIN = 0;   // начинаем ресет вайфая
     Lcd_Init();
     init_comms();   // старт UART
-    __delay_ms(500);
+    
+    Lcd_Clear();
+    Lcd_Set_Cursor(1,1);
+    Lcd_Write_String("WIFI-Thermometer");
+    Lcd_Set_Cursor(2,1);
+    Lcd_Write_String("is starting...");
+    
+    
+    __delay_ms(1000);
     
     //print_to_uart("System start");
     
     Lcd_Clear();
-    Lcd_Set_Cursor(1,1);
-    Lcd_Write_String("Temp: ");
-    Lcd_Set_Cursor(2,1);
-    Lcd_Write_String("min      max");  
+    //draw_screen();
+
     RESET_WIFI_PIN = 1; // заканчиваем ресет вай-фая
     
     TRISAbits.TRISA2 = 0; // переключаем RA2 на выход
@@ -79,16 +215,19 @@ void main(void) {
         for (j=0; j<4; j++) {
             t = get_temp(j);
             if (nosensor==1) {
-                printf("temp%d = ---\r\n", j ); 
+                //printf("temp%d = ---\r\n", j ); 
+                active[j] = 0;      // датчик отключен от термометра
+                
             } else {
-                if ( t < 0 ) {
-                    printf("temp%d = %d,%dC\r\n", j , t/10, -(t - t/10*10));
-                } else {
-                    printf("temp%d = +%d,%dC\r\n", j , t/10, t - t/10*10);
-                };
+                active[j] = 1;      // датчик подключен к термометру
+                temp[j] = t;        // обновляем массив текущих температур
+                
+                if(temp[j]>tempmax[j]) tempmax[j]=temp[j];
+                if(temp[j]<tempmin[j]) tempmin[j]=temp[j];
             };
         };
-        __delay_ms(300);
+        draw_screen();
+        //__delay_ms(300);
     };
     return;
 }
@@ -103,10 +242,24 @@ void interrupt isr(void) {
                 // Начинаем распознавать и выполнять комманды, которые пришли
                 if (a[0]=='A' && a[1]=='T') { //если это комманда, то обрабатываем   
                     if (a[2]=='\0') { // тестовая комманда которая возвращает просто ОК
-                        print_to_uart("OK");
+                        print_to_uart("OK\r\n");
+                    };
+                    if (a[2]==' ' && a[3]=='R' && a[4]=='\0') { // сбрасываем мин/мах значения
+                        tempmin[0] = tempmin[1] = tempmin[2] = tempmin[3] = 999;      // минимальные показания
+                        tempmax[0] = tempmax[1] = tempmax[2] = tempmax[3] = -999;  // максимальные показания
+                        //print_to_uart("Reseted\r\n");
                     };
                     if (a[2]==' ' && a[3]=='1' && a[4]=='\0') { //AT 1\0  - текущая температура
-                        print_to_uart("1");
+                        printf("%d|%d|%d|%d\r\n",temp[0],temp[1],temp[2],temp[3]);
+                    };
+                    if (a[2]==' ' && a[3]=='2' && a[4]=='\0') { //AT 1\0  - мин температура
+                        printf("%d|%d|%d|%d\r\n",tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
+                    };
+                    if (a[2]==' ' && a[3]=='3' && a[4]=='\0') { //AT 1\0  - макс температура
+                        printf("%d|%d|%d|%d\r\n",tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
+                    };
+                    if (a[2]==' ' && a[3]=='4' && a[4]=='\0') { //AT 1\0  - активные датчики
+                        printf("%d|%d|%d|%d\r\n",active[0],active[1],active[2],active[3]);
                     };
                 }; 
                 // если другой набор данных - игнорируем и не отвечаем
