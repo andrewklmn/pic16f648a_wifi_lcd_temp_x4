@@ -109,9 +109,11 @@ signed int get_temp(unsigned char ds) {
     unsigned char temp1 = 0;
     unsigned char temp2 = 0;
     unsigned char temp_drob;
-    signed int temperature;              // температура х10 в цельсиях
+    signed int temperature;           // температура х10 в цельсиях
     unsigned char signloc;            // знак температуры
 
+    
+    
     init = (init_ds(ds) >> ds) & 0b00000001;
     if (!init) {
         TX(0xCC, ds);
@@ -123,16 +125,19 @@ signed int get_temp(unsigned char ds) {
         __delay_ms(150); 
     }; 
     init = (init_ds(ds) >> ds) & 0b00000001;
+    
+    
     if (!init) {
-        RCIE = 0; //запрещаем прерывания
         
-        TX(0xCC, ds);
+        RCIE = 0; //запрещаем прерывания
+    
+        TX(0xCC, ds);       // считываем температуру
         TX(0xBE, ds);
-
         temp1 = RX(ds);
         temp2 = RX(ds);
-        RCIE = 1; //разрешаем прерывания
         
+        RCIE = 1; //разрешаем прерывания
+            
         signloc = (temp2 & 0x80) >> 7;  // определяем знак температуры
         temp_drob = temp1 & 0b00001111; // дробная часть температуры
         
@@ -147,6 +152,7 @@ signed int get_temp(unsigned char ds) {
         };
         return temperature = temp2*10 + temp_drob*10/16;    // если положительная то так        
     } else {
+        RCIE = 1; //разрешаем прерывания
         nosensor = 1; // поднимаем флаг что датчик отключен
         return 0;     // возращаем нулевую температуру
     };

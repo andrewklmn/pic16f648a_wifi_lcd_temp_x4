@@ -21,7 +21,7 @@
 #pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSC oscillator: I/O function on RA6/OSC2/CLKOUT pin, I/O function on RA7/OSC1/CLKIN)
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
-#pragma config MCLRE = OFF      // RA5/MCLR/VPP Pin Function Select bit (RA5/MCLR/VPP pin function is digital input, MCLR internally tied to VDD)
+#pragma config MCLRE = ON      // RA5/MCLR/VPP Pin Function Select bit (RA5/MCLR/VPP pin function is digital input, MCLR internally tied to VDD)
 #pragma config BOREN = OFF      // Brown-out Detect Enable bit (BOD disabled)
 #pragma config LVP = OFF        // Low-Voltage Programming Enable bit (RB4/PGM pin has digital I/O function, HV on MCLR must be used for programming)
 #pragma config CPD = OFF        // Data EE Memory Code Protection bit (Data memory code protection off)
@@ -54,6 +54,7 @@ char c;             // это символ для считывания из UART
 int i = 0;          // счётчик символа для комманд из UART
 signed int t = 0;   // переменная для хранения температуры
 char j = 0;         // счётчик для датчиков температуры
+
 
 void draw_temp( int temp ){
         int zel = temp/10;
@@ -197,7 +198,6 @@ void main(void) {
     Lcd_Set_Cursor(2,1);
     Lcd_Write_String("is starting...");
     
-    
     __delay_ms(1000);
     
     //print_to_uart("System start");
@@ -226,8 +226,10 @@ void main(void) {
                 if(temp[j]<tempmin[j]) tempmin[j]=temp[j];
             };
         };
+        RCIE = 0; //запрещаем прерывания
         draw_screen();
-        //__delay_ms(300);
+        RCIE = 1; //запрещаем прерывания
+        __delay_ms(500);
     };
     return;
 }
@@ -247,19 +249,24 @@ void interrupt isr(void) {
                     if (a[2]==' ' && a[3]=='R' && a[4]=='\0') { // сбрасываем мин/мах значения
                         tempmin[0] = tempmin[1] = tempmin[2] = tempmin[3] = 999;      // минимальные показания
                         tempmax[0] = tempmax[1] = tempmax[2] = tempmax[3] = -999;  // максимальные показания
+                        //temp[0] = temp[1] = temp[2] = temp[3] = 0;                  // текущее показания
                         //print_to_uart("Reseted\r\n");
                     };
                     if (a[2]==' ' && a[3]=='1' && a[4]=='\0') { //AT 1\0  - текущая температура
                         printf("%d|%d|%d|%d\r\n",temp[0],temp[1],temp[2],temp[3]);
+                        //printf("%d\r\n",temp[0]);
                     };
                     if (a[2]==' ' && a[3]=='2' && a[4]=='\0') { //AT 1\0  - мин температура
                         printf("%d|%d|%d|%d\r\n",tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
+                        //printf("%d\r\n",tempmin[0]);
                     };
                     if (a[2]==' ' && a[3]=='3' && a[4]=='\0') { //AT 1\0  - макс температура
                         printf("%d|%d|%d|%d\r\n",tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
+                        //printf("%d\r\n",tempmax[0]);
                     };
                     if (a[2]==' ' && a[3]=='4' && a[4]=='\0') { //AT 1\0  - активные датчики
                         printf("%d|%d|%d|%d\r\n",active[0],active[1],active[2],active[3]);
+                        //printf("%d\r\n",active[0]);
                     };
                 }; 
                 // если другой набор данных - игнорируем и не отвечаем
