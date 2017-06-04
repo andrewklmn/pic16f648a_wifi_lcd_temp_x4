@@ -1,6 +1,6 @@
 /*
  * File:   main.c
- * Author: Andrew Klmn
+ * Author: andrewklmn
  * Created on 15 березня 2017, 22:00
  */
 
