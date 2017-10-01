@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="62">
   <logicalFolder name="root" displayName="root" projectFiles="true">
+    <logicalFolder name="esp8266_arduino"
+                   displayName="esp8266_arduino"
+                   projectFiles="true">
+      <itemPath>esp8266_arduino/HelloServer_1.ino</itemPath>
+      <itemPath>esp8266_arduino/HelloServer_1.ino.d1_mini.bin</itemPath>
+    </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
@@ -15,12 +21,6 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="esp8266_arduino"
-                     displayName="esp8266_arduino"
-                     projectFiles="true">
-        <itemPath>../../Arduino/esp8266_arduino/HelloServer_1.ino</itemPath>
-        <itemPath>../../Arduino/esp8266_arduino/HelloServer_1.ino.d1_mini.bin</itemPath>
-      </logicalFolder>
       <itemPath>main.c</itemPath>
       <itemPath>onewire.c</itemPath>
       <itemPath>usart.c</itemPath>
@@ -33,6 +33,7 @@
   </logicalFolder>
   <sourceRootList>
     <Elem>../../Arduino/esp8266_arduino</Elem>
+    <Elem>esp8266_arduino</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
