@@ -22,6 +22,7 @@ char * temp_correct(char * str){
     static char temp[4][6];
     static char result[32];
     
+    
     if (str[0]=='-' && str[1]=='-' && str[2]=='-') {
       
       return str;
@@ -35,7 +36,18 @@ char * temp_correct(char * str){
       for (j=0; j<4; j++) {
           temp[j][0]='\0';
           while (str[i]!='|' && str[i]!='\0') {
-              if (str[i]!=' ' && str[i]!='\t' && str[i]!='\r' && str[i]!='\n') {
+              if (str[i]=='-'
+                      || str[i]=='+'
+                      || str[i]=='0'
+                      || str[i]=='1'
+                      || str[i]=='2'
+                      || str[i]=='3'
+                      || str[i]=='4'
+                      || str[i]=='5'
+                      || str[i]=='6'
+                      || str[i]=='7'
+                      || str[i]=='8'
+                      || str[i]=='9') {
                   temp[j][ii] = str[i];
                   ii++;
               };
@@ -45,38 +57,44 @@ char * temp_correct(char * str){
           i++;
           ii=0;
       };
-    
+      
       // формируем строку результата
       result[0]='\0';
       i = 0;  // индекс в исходящей строке
       ii = 0; // индекс по записи в массиве
       j = 0;
+      
       for (j=0; j<4; j++) {
-          if (temp[j][0]!='-') {
-              result[i] = '+';
-              i++;
-          };
-          while(temp[j][ii]!='\0') {
+            if (temp[j][0]!='-') {
+                result[i] = '+';
+                i++;
+            };
+
+            while(temp[j][ii]!='\0') {
               result[i] = temp[j][ii];
               i++;
               ii++;
-          };
-          // ставим точку
-          result[i] = result[i-1];
-          if (ii==2 || ii==1) {
+            };
+ 
+            // ставим точку
+            result[i] = result[i-1];
+            if ((ii==2 && temp[j][0]=='-') || ii==1) {
               result[i-1] = '0';
               result[i+1] = result[i];
               result[i] = '.';
               i++;
-          } else {
+            } else {
               result[i-1] = '.';
-          };
+            };
+          
           i++;
           if (j<3 ) result[i] = '|';
           i++;
           ii=0;
           temp[j][0] = '\0';
       };
+      
+      
       result[i-1]='\0';
       return result;
     };
@@ -171,6 +189,8 @@ void handleRoot() { // титульная страница для термоме
   Serial.println("AT 1");    //читаем текущую температуру из UART
   answer = UART_read_answer();
   message += "<h3>temp: ";
+  //message += answer;
+  //message += "<br/>";
   message += temp_correct(answer);
   message += "C</h3>";
   
@@ -180,6 +200,8 @@ void handleRoot() { // титульная страница для термоме
   Serial.println("AT 2");    //читаем мин температуру из UART
   answer = UART_read_answer();
   message += "min: ";
+  //message += answer;
+  //message += "<br/>";
   message += temp_correct(answer);
   message += "C<br/>";
   
@@ -187,6 +209,8 @@ void handleRoot() { // титульная страница для термоме
   Serial.println("AT 3");    //читаем макс температуру из UART
   answer = UART_read_answer();
   message += "max: ";
+  //message += answer;
+  //message += "<br/>";
   message += temp_correct(answer);
   message += "C<br/>";
   

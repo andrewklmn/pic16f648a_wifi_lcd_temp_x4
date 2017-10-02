@@ -5,7 +5,6 @@
                    displayName="esp8266_arduino"
                    projectFiles="true">
       <itemPath>esp8266_arduino/HelloServer_1.ino</itemPath>
-      <itemPath>esp8266_arduino/HelloServer_1.ino.d1_mini.bin</itemPath>
     </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
