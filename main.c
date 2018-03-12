@@ -219,7 +219,12 @@ void main(void) {
                 
             } else {
                 active[j] = 1;      // датчик подключен к термометру
-                temp[j] = t;        // обновляем массив текущих температур
+                
+                if (j == 0) {
+                    temp[j] = t - 30 ;  //коррекция температуры в корпусе на 2,5 градуса
+                } else {
+                    temp[j] = t;        // обновляем массив текущих температур
+                };
                 
                 if(temp[j]>tempmax[j]) tempmax[j]=temp[j];
                 if(temp[j]<tempmin[j]) tempmin[j]=temp[j];
