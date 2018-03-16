@@ -4,7 +4,7 @@
 #include <ESP8266mDNS.h>
 #include <string.h>
 
-#define PIC_TIMEOUT 500000
+#define PIC_TIMEOUT 250000
 
 const char* ssid = "BUZOVA1";
 const char* password = "1234567890";
@@ -163,6 +163,7 @@ void handleRoot() { // титульная страница для термоме
       Serial.println("AT R");  // отсылаем на UART комманду сброса температуры
       // Получаем ответ или таймаут
       answer = UART_read_answer();      
+      
   };
 
 
@@ -188,6 +189,7 @@ void handleRoot() { // титульная страница для термоме
   UART_clean_answer();
   Serial.println("AT 1");    //читаем текущую температуру из UART
   answer = UART_read_answer();
+  
   message += "<h3>temp: ";
   //message += answer;
   //message += "<br/>";
@@ -199,6 +201,7 @@ void handleRoot() { // титульная страница для термоме
   UART_clean_answer();
   Serial.println("AT 2");    //читаем мин температуру из UART
   answer = UART_read_answer();
+  
   message += "min: ";
   //message += answer;
   //message += "<br/>";
@@ -220,13 +223,22 @@ void handleRoot() { // титульная страница для термоме
   answer = UART_read_answer();
   message += "active: ";
   message += answer;
+  message += "<br/>";
+
+     UART_clean_answer();
+  Serial.println("AT 5");    //читаем погрешности 
+  answer = UART_read_answer();
+  message += "active: ";
+  message += answer;
   message += "<hr/>";
   
   message += "<form method='post'>"; 
   message += "<input type='hidden' name='name' value='AT R'/>"; 
   message += "<input style='height: 50px;width: 200px;font-size: 22px;color: darkblue;background-color: #0088cc;' ";
   message += "  type='submit' value='RESET'/>"; 
-  message += "</form></div></body></html>";
+  message += "</form></div>";
+  message += "<br/><a href='/command'>Command</a>";
+  message += "</body></html>";
   
   server.send(200, "text/html", message );
 
@@ -260,7 +272,16 @@ void handleCommand() {
   message += "Command: "; 
   message += "<input type='text' name='name' value=''/>"; 
   message += "<input type='submit' value='Send'/>"; 
-  message += "</form></body></html>";
+  message += "</form>";
+  message += "<br/>AT 1 - current temperature";
+  message += "<br/>AT 2 - min temperature";
+  message += "<br/>AT 3 - max temperature";
+  message += "<br/>AT 4 - active sensors";
+  message += "<br/>AT 5 - current delta";
+  message += "<br/>AT R - reset min/max temp";
+  message += "<br/>AT +N - increase N-temp +0,5";
+  message += "<br/>AT -N - reduce   N-temp -0,5";
+  message += "</body></html>";
   
   server.send(200, "text/html", message );
 
@@ -292,7 +313,8 @@ void setup(void){
   WiFi.mode(WIFI_AP_STA);             // клиент и точка доступа
   WiFi.config(ip, gateway, subnet);
   WiFi.begin(ssid, password);
-  Serial.println("");
+  Serial.println("--------------");
+  Serial.println("WiFi connected");
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
@@ -310,6 +332,7 @@ void setup(void){
 
   if (MDNS.begin("esp8266")) {
     //Serial.println("MDNS responder started");
+    //MDNS.addService("http", "tcp", 80);
   }
 
   server.on("/command", handleCommand);
