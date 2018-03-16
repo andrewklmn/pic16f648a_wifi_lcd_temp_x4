@@ -86,7 +86,11 @@ void print_delta() {
     printf("%d|%d|%d|%d\r\n", eeprom_read(0x00)-125, eeprom_read(0x01)-125, eeprom_read(0x02)-125, eeprom_read(0x03)-125);
 }
 
-void print_four(char a1, char a2, char a3, char a4){
+void print_four_int(signed int a1, signed int a2, signed int a3, signed int a4){
+    printf("%d|%d|%d|%d\r\n", a1,a2,a3,a4);
+}
+
+void print_four_char(unsigned char a1, unsigned char a2, unsigned char a3, unsigned char a4){
     printf("%d|%d|%d|%d\r\n", a1,a2,a3,a4);
 }
 
@@ -261,18 +265,18 @@ void interrupt isr(void) {
                         //print_to_uart("Reseted\r\n");
                     };
                     if (a[2]==' ' && a[3]=='1' && a[4]=='\0') { //AT 1\0  - текущая температура
-                        print_four(temp[0],temp[1],temp[2],temp[3]);
+                        print_four_int(temp[0],temp[1],temp[2],temp[3]);
                     };
                     if (a[2]==' ' && a[3]=='2' && a[4]=='\0') { //AT 1\0  - мин температура
-                        print_four(tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
+                        print_four_int(tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
                         //printf("%d\r\n",tempmin[0]);
                     };
                     if (a[2]==' ' && a[3]=='3' && a[4]=='\0') { //AT 1\0  - макс температура
-                        print_four(tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
+                        print_four_int(tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
                         //printf("%d\r\n",tempmax[0]);
                     };
                     if (a[2]==' ' && a[3]=='4' && a[4]=='\0') { //AT 1\0  - активные датчики
-                        print_four(active[0],active[1],active[2],active[3]);
+                        print_four_char(active[0],active[1],active[2],active[3]);
                         //printf("%d\r\n",active[0]);
                     };
                     if (a[2]==' ' && a[3]=='5' && a[4]=='\0') { //AT 1\0  - текущие погрешности
