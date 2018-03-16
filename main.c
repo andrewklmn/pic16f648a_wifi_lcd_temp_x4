@@ -38,22 +38,26 @@
 #include "usart.h"
 #include "onewire.h"
 
+__EEPROM_DATA(125,125,125,125,0,0,0,0);
+
 // переменные для хранения текущих данных по температуре
-signed int  temp[4] = {0,0,0,0};               // текущие показания датчика
+signed int  temp[4] = {0,0,0,0};                // текущие показания датчика
 signed int tempmin[4] = {999,999,999,999};      // минимальные показания
 signed int tempmax[4] = {-999,-999,-999,-999};  // максимальные показания
+unsigned char delta = 125;
 unsigned char active[4] = { 0,0,0,0 };          // массив активных датчиков 
 unsigned char active_old[4] = { 1,1,1,1 };      // массив активных датчиков перед измерением
 
 
 char a[16] = "";    // буффер для приема комманд по USART
 char *aa[17];       // буффер для вывода цифр температуры
+char b[2];       // буффер для вывода цифр температуры
 
 char c;             // это символ для считывания из UART
 int i = 0;          // счётчик символа для комманд из UART
 signed int t = 0;   // переменная для хранения температуры
 char j = 0;         // счётчик для датчиков температуры
-
+char offset = 0;    // смещение адреса в eeprom
 
 void draw_temp( int temp ){
         int zel = temp/10;
@@ -77,6 +81,14 @@ void draw_temp( int temp ){
         };
         Lcd_Write_String(aa);    
 };
+
+void print_delta() {
+    printf("%d|%d|%d|%d\r\n", eeprom_read(0x00)-125, eeprom_read(0x01)-125, eeprom_read(0x02)-125, eeprom_read(0x03)-125);
+}
+
+void print_four(char a1, char a2, char a3, char a4){
+    printf("%d|%d|%d|%d\r\n", a1,a2,a3,a4);
+}
 
 void draw_screen(){
     
@@ -191,6 +203,9 @@ void main(void) {
     Lcd_Init();
     init_comms();   // старт UART
     
+    
+    
+    
     Lcd_Clear();
     Lcd_Set_Cursor(1,1);
     Lcd_Write_String("WIFI-Thermometer");
@@ -198,12 +213,8 @@ void main(void) {
     Lcd_Write_String("is starting...");
     
     __delay_ms(1000);
-    
-    //print_to_uart("System start");
-    
     Lcd_Clear();
-    //draw_screen();
-
+    
     RESET_WIFI_PIN = 1; // заканчиваем ресет вай-фая
     
     TRISAbits.TRISA2 = 0; // переключаем RA2 на выход
@@ -212,19 +223,12 @@ void main(void) {
     while(1){
         // считываем датчики в цикле
         for (j=0; j<4; j++) {
-            t = get_temp(j);
+            t = get_temp(j) + eeprom_read(j) - 125;
             if (nosensor==1) {
-                //printf("temp%d = ---\r\n", j ); 
                 active[j] = 0;      // датчик отключен от термометра
-                
             } else {
-                active[j] = 1;      // датчик подключен к термометру
-                
-                if (j == 0) {
-                    temp[j] = t - 30 ;  //коррекция температуры в корпусе на 2,5 градуса
-                } else {
-                    temp[j] = t;        // обновляем массив текущих температур
-                };
+                active[j] = 1;                      // датчик подключен к термометру
+                temp[j] = t;       // обновляем массив текущих температур
                 
                 if(temp[j]>tempmax[j]) tempmax[j]=temp[j];
                 if(temp[j]<tempmin[j]) tempmin[j]=temp[j];
@@ -257,20 +261,60 @@ void interrupt isr(void) {
                         //print_to_uart("Reseted\r\n");
                     };
                     if (a[2]==' ' && a[3]=='1' && a[4]=='\0') { //AT 1\0  - текущая температура
-                        printf("%d|%d|%d|%d\r\n",temp[0],temp[1],temp[2],temp[3]);
-                        //printf("%d\r\n",temp[0]);
+                        print_four(temp[0],temp[1],temp[2],temp[3]);
                     };
                     if (a[2]==' ' && a[3]=='2' && a[4]=='\0') { //AT 1\0  - мин температура
-                        printf("%d|%d|%d|%d\r\n",tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
+                        print_four(tempmin[0],tempmin[1],tempmin[2],tempmin[3]);
                         //printf("%d\r\n",tempmin[0]);
                     };
                     if (a[2]==' ' && a[3]=='3' && a[4]=='\0') { //AT 1\0  - макс температура
-                        printf("%d|%d|%d|%d\r\n",tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
+                        print_four(tempmax[0],tempmax[1],tempmax[2],tempmax[3]);
                         //printf("%d\r\n",tempmax[0]);
                     };
                     if (a[2]==' ' && a[3]=='4' && a[4]=='\0') { //AT 1\0  - активные датчики
-                        printf("%d|%d|%d|%d\r\n",active[0],active[1],active[2],active[3]);
+                        print_four(active[0],active[1],active[2],active[3]);
                         //printf("%d\r\n",active[0]);
+                    };
+                    if (a[2]==' ' && a[3]=='5' && a[4]=='\0') { //AT 1\0  - текущие погрешности
+                        //printf("%d|%d|%d|%d\r\n",active[0],active[1],active[2],active[3]);
+                        //printf("%d\r\n",active[0]);
+                        print_delta();
+                    };
+                    if (a[2]==' ' && a[3]=='+') { //AT +  погрешность плюс
+                        switch(a[4]){
+                            case '1':
+                                offset = 0;
+                                break;
+                            case '2':
+                                offset = 1;
+                                break;
+                            case '3':
+                                offset = 2;
+                                break;
+                            case '4':
+                                offset = 3;
+                                break;
+                        }
+                        eeprom_write(offset,eeprom_read(offset) + 5);
+                        print_delta();
+                    };
+                    if (a[2]==' ' && a[3]=='-') { //AT -  погрешность минус
+                                                switch(a[4]){
+                            case '1':
+                                offset = 0;
+                                break;
+                            case '2':
+                                offset = 1;
+                                break;
+                            case '3':
+                                offset = 2;
+                                break;
+                            case '4':
+                                offset = 3;
+                                break;
+                        }
+                        eeprom_write(offset,eeprom_read(offset) - 5);
+                        print_delta();
                     };
                 }; 
                 // если другой набор данных - игнорируем и не отвечаем

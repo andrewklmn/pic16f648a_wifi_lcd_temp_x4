@@ -102,7 +102,7 @@ void Lcd_Write_String(char *a)
 	   Lcd_Write_Char(a[i]);
 }
 
-
+/*
 void Lcd_Shift_Right()
 {
 	Lcd_Cmd(0x01);
@@ -114,4 +114,5 @@ void Lcd_Shift_Left()
 	Lcd_Cmd(0x01);
 	Lcd_Cmd(0x08);
 }
+*/
 
