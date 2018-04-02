@@ -4,7 +4,6 @@
     <logicalFolder name="esp8266_arduino"
                    displayName="esp8266_arduino"
                    projectFiles="true">
-      <itemPath>../../Dropbox/Arduino/esp8266_arduino/HelloServer_1/HelloServer_1.ino</itemPath>
     </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
@@ -29,6 +28,7 @@
                    projectFiles="false">
       <itemPath>Makefile</itemPath>
     </logicalFolder>
+    <itemPath>esp8266_arduino/HelloServer_1.ino</itemPath>
   </logicalFolder>
   <sourceRootList>
     <Elem>../../Arduino/esp8266_arduino</Elem>
